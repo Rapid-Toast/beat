@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BeatThe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#dfe7ea;--panel:#fff;--ink:#1d2b36;--muted:#5d6e7a;--carpet:#3f5b6b;--hole:#1a2630;--desk:#b98b5e;--accent:#d8402f;--note:#ffd84d;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10181e;--panel:#1b2831;--ink:#eef3f5;--muted:#9fb0ba;--carpet:#2c4350;--hole:#070b0e;--desk:#8d6a47;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#10181e;--panel:#1b2831;--ink:#eef3f5;--muted:#9fb0ba;--carpet:#2c4350;--hole:#070b0e;--desk:#8d6a47;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{background:var(--bg);color:var(--ink);font-family:"Rubik",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;justify-content:center;touch-action:manipulation;-webkit-user-select:none;user-select:none;height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
+main{width:100%;max-width:560px;height:100%;min-height:0;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+h1{margin:0;font-size:clamp(24px,5.5vh,36px);font-weight:800;letter-spacing:-.02em;line-height:1}
+h1 span{color:var(--accent)}
+.sub{margin:3px 0 0;color:var(--muted);font-size:13px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:var(--panel);border-radius:12px;padding:5px 8px;text-align:center}
+.stat b{display:block;font-size:22px;font-weight:800;line-height:1.1}
+.stat small{color:var(--muted);font-size:11px}
+.note{background:var(--note);color:#2a2400;border-radius:4px;padding:7px 12px;min-height:36px;font-size:14px;font-weight:500;transform:rotate(-.6deg);box-shadow:0 2px 0 rgba(0,0,0,.18);display:flex;align-items:center}
+.floor{background:var(--carpet);border-radius:18px;padding:12px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:10px;position:relative;flex:1;min-height:0}
+.cube{position:relative;min-width:0;min-height:0}
+.pit{position:absolute;inset:0;overflow:hidden;border-radius:0 0 50% 50%/0 0 22% 22%;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.hole{position:absolute;left:6%;right:6%;bottom:4%;height:24%;background:var(--hole);border-radius:50%}
+.pop{position:absolute;left:12%;right:12%;bottom:12%;top:6%;transform:translateY(105%);transition:transform .12s ease-out;display:flex;align-items:flex-end;justify-content:center}
+.pop.up{transform:translateY(0)}
+.pop svg{width:100%;height:100%}
+.pop.hit{transform:translateY(32%) scaleY(.82);transition:transform .08s}
+.pop.hit::after{content:"💥";position:absolute;top:0;font-size:clamp(22px,7vw,34px)}
+.desk{position:absolute;left:0;right:0;bottom:0;height:16%;background:var(--desk);border-radius:6px;pointer-events:none}
+.intern{font-size:clamp(34px,min(15vw,9vh),76px);line-height:1;padding-bottom:4px}
+.hammer{position:fixed;left:0;top:0;font-size:44px;pointer-events:none;z-index:50;transform:translate(-30%,-70%) rotate(-30deg);transform-origin:70% 90%;transition:transform .07s;display:none}
+.hammer.swing{transform:translate(-30%,-70%) rotate(35deg)}
+@media (pointer:fine){.floor,.floor *{cursor:none}.hammer{display:block}.overlay,.overlay *{cursor:auto!important}.overlay button,.overlay a{cursor:pointer!important}}
+.overlay{position:absolute;inset:0;background:rgba(10,18,24,.88);border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:safe center;text-align:center;gap:8px;padding:14px;color:#fff;z-index:5;overflow:auto}
+.overlay[hidden]{display:none}
+.overlay h2{margin:0;font-size:28px;font-weight:800}
+.overlay p{margin:0;max-width:34ch;font-size:15px;color:#d5e0e6}
+.big{font-size:44px;line-height:1}
+.pick{font-size:13px;color:#d5e0e6;margin-top:2px}
+.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;max-width:100%}
+.chip{font:inherit;font-size:14px;font-weight:500;background:transparent;color:#fff;border:2px solid #8fa3ae;border-radius:999px;padding:5px 12px;box-shadow:none;cursor:pointer}
+.chip[aria-pressed="true"]{background:#fff;color:#1d2b36;border-color:#fff}
+.custom{display:flex;gap:6px}
+.custom input{font:inherit;font-size:14px;width:150px;border-radius:999px;border:2px solid #8fa3ae;background:transparent;color:#fff;padding:5px 12px;-webkit-user-select:text;user-select:text}
+.custom input::placeholder{color:#9fb0ba}
+.custom button{font-size:14px;padding:5px 14px;border-radius:999px;box-shadow:none}
+button{font:inherit;font-weight:800;font-size:18px;background:var(--accent);color:#fff;border:0;border-radius:12px;padding:12px 26px;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.3)}
+button:active{transform:translateY(2px)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--note);outline-offset:2px}
+button.alt{background:transparent;color:#fff;border:2px solid #fff;box-shadow:none;font-size:16px;padding:9px 20px}
+.vidArea{display:flex;flex-direction:column;align-items:center;gap:6px}.vidArea[hidden],#vid[hidden]{display:none}#vid{max-height:26vh;max-width:70%;border-radius:10px;background:#000}.vbtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.vbtns button{font-size:15px;padding:8px 16px}button:disabled{opacity:.5;cursor:default}
+.share{display:flex;flex-direction:column;align-items:center;gap:8px}
+.share[hidden],.links[hidden],.custom[hidden]{display:none}
+.links{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.links a,.links button{font:inherit;font-size:14px;font-weight:500;color:#1d2b36;background:#fff;border:0;border-radius:999px;padding:7px 14px;text-decoration:none;box-shadow:none}
+.smsg{font-size:13px;color:#d5e0e6;min-height:16px}
+.legend{font-size:12px;color:var(--muted);text-align:center;margin:0}
+@media (max-height:720px){.sub,.legend{display:none}.overlay h2{font-size:22px}.overlay p{font-size:14px}.big{font-size:34px}button{font-size:16px;padding:9px 20px}}
+@media (prefers-reduced-motion:reduce){.pop,.hammer{transition:none}}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 id="title">Beat the <span>HR</span></h1>
+    <p class="sub" id="sub"></p>
+  </header>
+  <div class="stats">
+    <div class="stat"><b id="score">0</b><small>Times beaten</small></div>
+    <div class="stat"><b id="time">60</b><small>Seconds left</small></div>
+    <div class="stat"><b id="best">0</b><small>Best score</small></div>
+  </div>
+  <div class="note" id="note"></div>
+  <div class="floor" id="floor">
+    <div class="overlay" id="overlay">
+      <div class="big" id="ovEmoji">🔨</div>
+      <h2 id="ovTitle">Who do you want to beat?</h2>
+      <p id="ovText"></p>
+      <div class="vidArea" id="vidArea" hidden><video id="vid" playsinline controls loop muted hidden></video><div class="smsg" id="vstat" role="status"></div><div class="vbtns"><button id="vidShare" type="button" disabled>Share video</button><button class="alt" id="vidSave" type="button" disabled>Save video</button></div></div>
+      <div class="pick">Choose your target</div>
+      <div class="chips" id="chips"></div>
+      <div class="custom"><input id="customIn" maxlength="14" placeholder="Or type your own" aria-label="Custom target"><button id="customBtn" type="button">Set</button></div>
+      <button id="start">Start shift</button>
+      <div class="share" id="share" hidden>
+        <button class="alt" id="shareBtn" type="button">Share your score</button>
+        <div class="links" id="links" hidden>
+          <a id="shWa" target="_blank" rel="noopener">WhatsApp</a>
+          <a id="shX" target="_blank" rel="noopener">X</a>
+          <a id="shFb" target="_blank" rel="noopener">Facebook</a>
+          <a id="shTg" target="_blank" rel="noopener">Telegram</a>
+          <button id="shCopy" type="button">Copy text</button>
+        </div>
+        <div class="smsg" id="smsg" role="status"></div>
+      </div>
+    </div>
+  </div>
+  <p class="legend">Click or tap to whack. Your 60-second game is recorded so you can share the video.</p>
+</main>
+<div class="hammer" id="hammer">🔨</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.js"></script>
+<script>
+(function(){
+  var DURATION=60;
+  var PROFS={
+    "Principal":{b:"PRIN",s:"#4a3b6b",i:["🧒","Student"],q:["“Detention for everyone!”","“See me in my office.”","“This will go on your record.”"]},
+    "HR":{b:"HR",s:"#2f4a6b",i:["🧑‍💻","Intern"],q:["“Let’s circle back on that.”","“Per my last email…”","“Please fill out form 27-B.”"]},
+    "CEO":{b:"CEO",s:"#1f1f27",i:["🧑‍💼","Assistant"],q:["“We’re pivoting. Again.”","“Let’s disrupt something.”","“Do more with less.”"]},
+    "Manager":{b:"MGR",s:"#3a6b4f",i:["🧑‍💻","Intern"],q:["“Can we schedule a quick sync?”","“Let’s take this offline.”","“Quick favour, due today.”"]},
+    "Boss":{b:"BOSS",s:"#6b2f2f",i:["🧑‍💻","Intern"],q:["“My door is always open.”","“Weekend work is optional.”","“Why is this not done yet?”"]},
+    "Teacher":{b:"TCH",s:"#5a6b2f",i:["🧒","Student"],q:["“Homework due tomorrow!”","“Pop quiz, everyone.”","“Eyes on your own paper.”"]},
+    "Landlord":{b:"RENT",s:"#6b4f2f",i:["🧑‍🔧","Plumber"],q:["“Rent is going up 20%.”","“That damp is cosmetic.”","“Who said you could paint?”"]},
+    "Client":{b:"CLNT",s:"#2f6b6b",i:["🧑‍🎨","Designer"],q:["“Make the logo bigger.”","“Can you make it pop?”","“One tiny change…”"]}
+  };
+  var NAMES=Object.keys(PROFS);
+  var SUITS=["#4a3b6b","#2f4a6b","#1f1f27","#3a6b4f","#6b2f2f","#5a6b2f"];
+  var GEN_Q=["“This is a learning opportunity.”","“We’re a family here.”","“Your feedback is valued.”","“Mandatory fun at 5 pm!”","“I’m just flagging this.”"];
+  var TIERS=[
+    {min:0,e:"😇",t:"Model citizen",x:"Not a single complaint. Nobody was harmed."},
+    {min:1,e:"⚠️",t:"Verbal warning",x:"You got a stern talking-to."},
+    {min:15,e:"🚫",t:"Suspended!",x:"Two weeks off, no pay."},
+    {min:30,e:"🔥",t:"You’re fired!",x:"Security will escort you out."},
+    {min:45,e:"🎓",t:"Rusticated!",x:"Banished from the campus forever."},
+    {min:60,e:"🚔",t:"Jailed!",x:"Ten years for aggravated whacking."}
+  ];
+  var cur="HR",floor=document.getElementById("floor"),overlay=document.getElementById("overlay");
+  var elScore=document.getElementById("score"),elTime=document.getElementById("time"),elBest=document.getElementById("best"),note=document.getElementById("note");
+  var hammer=document.getElementById("hammer"),chips=document.getElementById("chips");
+  var cubes=[],score=0,time=DURATION,running=false,best=0,tickT=null,spawnT=null;
+
+  function prof(){
+    if(PROFS[cur])return PROFS[cur];
+    var h=0;for(var k=0;k<cur.length;k++)h+=cur.charCodeAt(k);
+    return {b:cur.slice(0,4).toUpperCase(),s:SUITS[h%SUITS.length],i:["🧑‍💻","Intern"],q:GEN_Q.slice(0,3)};
+  }
+  function bkey(){return "beatthe-best-"+cur.toLowerCase();}
+  function loadBest(){best=0;try{best=parseInt(localStorage.getItem(bkey())||"0",10)||0;}catch(e){}elBest.textContent=best;}
+  function clean(s){return s.replace(/[<>&"']/g,"").replace(/\s+/g," ").trim();}
+  function svg(){
+    var p=prof();
+    return '<svg viewBox="0 0 100 110" aria-label="'+cur+'"><rect x="14" y="78" width="72" height="40" rx="16" fill="'+p.s+'"/><path d="M42 78l8 10 8-10z" fill="#fff"/><path d="M47 88h6l3 24H44z" fill="#d8402f"/><rect x="59" y="90" width="24" height="12" rx="2" fill="#fff"/><text x="71" y="99" font-size="7" font-weight="800" text-anchor="middle" fill="'+p.s+'" font-family="sans-serif">'+p.b+'</text><rect x="42" y="68" width="16" height="14" fill="#e3b58c"/><ellipse cx="50" cy="42" rx="27" ry="31" fill="#f1c7a0"/><path d="M23 38c0-22 14-30 27-30s27 8 27 30c-6-12-16-16-27-16S29 26 23 38z" fill="#5b5b63"/><circle cx="39" cy="44" r="8" fill="#fff" stroke="#222" stroke-width="2.5"/><circle cx="61" cy="44" r="8" fill="#fff" stroke="#222" stroke-width="2.5"/><path d="M47 44h6" stroke="#222" stroke-width="2.5"/><circle cx="39" cy="45" r="2.6" fill="#222"/><circle cx="61" cy="45" r="2.6" fill="#222"/><path d="M31 33l16 3M69 33l-16 3" stroke="#3b3b42" stroke-width="3" stroke-linecap="round"/><path d="M38 60q12 9 24 0" fill="none" stroke="#8a3b2e" stroke-width="3" stroke-linecap="round"/></svg>';
+  }
+  function setProf(n){
+    cur=n;
+    document.getElementById("title").innerHTML='Beat the <span></span>';
+    document.querySelector("#title span").textContent=cur;
+    document.title="Beat the "+cur;
+    var p=prof();
+    document.getElementById("sub").textContent="Whack the "+cur+" before they pop back to their desk. Don’t hit the "+p.i[1].toLowerCase()+".";
+    document.getElementById("ovText").textContent=cur+" +1 point. "+p.i[1]+" −2 points. You have "+DURATION+" seconds. They get faster.";
+    note.textContent=p.q[0];
+    Array.prototype.forEach.call(chips.children,function(c){c.setAttribute("aria-pressed",c.dataset.n===cur?"true":"false");});
+    headImg();
+    loadBest();
+  }
+  NAMES.forEach(function(n){
+    var b=document.createElement("button");b.type="button";b.className="chip";b.dataset.n=n;b.textContent=n;
+    b.addEventListener("click",function(){setProf(n);});chips.appendChild(b);
+  });
+  function setCustom(){
+    var v=clean(document.getElementById("customIn").value);
+    if(!v)return;
+    v=v.charAt(0).toUpperCase()+v.slice(1);
+    setProf(v);
+  }
+  document.getElementById("customBtn").addEventListener("click",setCustom);
+  document.getElementById("customIn").addEventListener("keydown",function(e){if(e.key==="Enter")setCustom();});
+
+  for(var i=0;i<9;i++){
+    var c=document.createElement("div");c.className="cube";
+    c.innerHTML='<div class="pit"><div class="hole"></div><div class="pop"></div></div><div class="desk"></div>';
+    floor.appendChild(c);
+    (function(c){
+      var pit=c.querySelector(".pit"),pop=c.querySelector(".pop");
+      var o={pit:pit,pop:pop,type:null,t:null,p:0,tgt:0,hit:false};
+      pit.addEventListener("pointerdown",function(ev){ev.preventDefault();whack(o);});
+      cubes.push(o);
+    })(c);
+  }
+
+  function track(name,title){
+    try{if(window.goatcounter&&window.goatcounter.count){window.goatcounter.count({path:"event-"+name,title:title||name,event:true});}}catch(e){}
+  }
+  function say(t){note.textContent=t;}
+  function hide(o){clearTimeout(o.t);o.pop.classList.remove("up","hit");o.type=null;o.tgt=0;o.hit=false;}
+  function whack(o){
+    if(!running||!o.type||o.pop.classList.contains("hit"))return;
+    var p=prof();
+    if(o.type==="hr"){score+=1;var all=p.q.concat(GEN_Q);say(all[Math.floor(Math.random()*all.length)]);}
+    else{score=Math.max(0,score-2);say("“Please don’t hit me, I’m just the "+p.i[1].toLowerCase()+"!”");}
+    elScore.textContent=score;
+    clearTimeout(o.t);o.pop.classList.add("hit");o.hit=true;o.tgt=0.4;
+    o.t=setTimeout(function(){hide(o);},260);
+  }
+  function spawn(){
+    if(!running)return;
+    var free=cubes.filter(function(o){return !o.type;});
+    if(free.length){
+      var o=free[Math.floor(Math.random()*free.length)];
+      var isI=Math.random()<0.15;
+      o.type=isI?"intern":"hr";
+      o.pop.innerHTML=isI?'<div class="intern" aria-label="'+prof().i[1]+'">'+prof().i[0]+'</div>':svg();
+      o.pop.classList.remove("hit");
+      void o.pop.offsetWidth;
+      o.pop.classList.add("up");o.tgt=1;
+      var stay=Math.max(420,1000-score*14);
+      o.t=setTimeout(function(){hide(o);},stay);
+    }
+    var gap=Math.max(260,820-score*12);
+    spawnT=setTimeout(spawn,gap*(0.7+Math.random()*0.6));
+  }
+  function tier(s){var t=TIERS[0];for(var k=0;k<TIERS.length;k++){if(s>=TIERS[k].min)t=TIERS[k];}return t;}
+
+  function end(){
+    running=false;clearInterval(tickT);clearTimeout(spawnT);
+    cubes.forEach(hide);
+    var nb=score>best;
+    if(nb){best=score;elBest.textContent=best;try{localStorage.setItem(bkey(),String(best));}catch(e){}}
+    var t=tier(score);
+    document.getElementById("ovEmoji").textContent=t.e;
+    document.getElementById("ovTitle").textContent=t.t;
+    document.getElementById("ovText").textContent="You beat the "+cur+" "+score+" time"+(score===1?"":"s")+". "+t.x+(nb&&score>0?" New best!":" Best is "+best+".");
+    document.getElementById("start").textContent="Work another shift";
+    track("game-finished","Game finished");
+    track("target-"+cur.toLowerCase(),"Target "+cur);
+    track(score<=14?"score-0-14":score<=44?"score-15-44":"score-45-plus",score<=14?"Score 0-14":score<=44?"Score 15-44":"Score 45+");
+    prepShare(t);linksBox.hidden=true;smsg.textContent="";
+    shareBox.hidden=!(score>0);
+    result=t;beginFinish();
+    overlay.hidden=false;
+  }
+
+  var shareBox=document.getElementById("share"),linksBox=document.getElementById("links"),smsg=document.getElementById("smsg");
+  function pageUrl(){return /^https?:/.test(location.protocol)?location.href.split("#")[0]:"";}
+  function shareText(){var t=tier(score);return "I beat the "+cur+" "+score+" time"+(score===1?"":"s")+" in "+DURATION+" seconds and got: "+t.t+" "+t.e+" Can you beat me?";}
+  function prepShare(){
+    var t=shareText(),u=pageUrl(),both=encodeURIComponent(u?t+" "+u:t),et=encodeURIComponent(t),eu=encodeURIComponent(u);
+    document.getElementById("shWa").href="https://wa.me/?text="+both;
+    document.getElementById("shX").href="https://twitter.com/intent/tweet?text="+et+(u?"&url="+eu:"");
+    document.getElementById("shFb").href="https://www.facebook.com/sharer/sharer.php?u="+eu+"&quote="+et;
+    document.getElementById("shTg").href="https://t.me/share/url?url="+eu+"&text="+et;
+  }
+  function copyText(){
+    var txt=shareText()+(pageUrl()?" "+pageUrl():"");
+    function ok(){smsg.textContent="Copied. Paste it anywhere.";}
+    function fallback(){
+      var ta=document.createElement("textarea");ta.value=txt;ta.style.position="fixed";ta.style.opacity="0";
+      document.body.appendChild(ta);ta.select();
+      try{document.execCommand("copy");ok();}catch(e){smsg.textContent="Couldn’t copy. Select and copy this: "+txt;}
+      document.body.removeChild(ta);
+    }
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(ok,fallback);}else{fallback();}
+  }
+  document.getElementById("shareBtn").addEventListener("click",function(){
+    track("share-click","Share button clicked");
+    smsg.textContent="";
+    if(navigator.share){
+      var d={title:"Beat the "+cur,text:shareText()};
+      if(pageUrl())d.url=pageUrl();
+      navigator.share(d).catch(function(err){if(err&&err.name!=="AbortError"){linksBox.hidden=false;}});
+    }else{linksBox.hidden=!linksBox.hidden;}
+  });
+  document.getElementById("shCopy").addEventListener("click",function(){track("share-copy","Copy text clicked");copyText();});
+
+  function start(){
+    var v=clean(document.getElementById("customIn").value);
+    if(v&&v.toLowerCase()!==cur.toLowerCase()&&document.activeElement===document.getElementById("customIn"))setCustom();
+    resetVid();result=null;score=0;time=DURATION;running=true;
+    elScore.textContent=0;elTime.textContent=DURATION;say(prof().q[0]);
+    track("game-started","Game started: "+cur);
+    overlay.hidden=true;shareBox.hidden=true;
+    tickT=setInterval(function(){time--;elTime.textContent=time;if(time<=0)end();},1000);
+    spawn();startRec();
+  }
+  document.getElementById("start").addEventListener("click",start);
+
+  document.addEventListener("pointermove",function(e){hammer.style.left=e.clientX+"px";hammer.style.top=e.clientY+"px";});
+  document.addEventListener("pointerdown",function(e){
+    hammer.style.left=e.clientX+"px";hammer.style.top=e.clientY+"px";
+    hammer.classList.add("swing");setTimeout(function(){hammer.classList.remove("swing");},90);
+  });
+  /* ---- video recording: a canvas mirror of the game is recorded ---- */
+  var cv=document.createElement("canvas");var W=720,H=1280,CODECS=["avc1.42002a","avc1.4d002a","avc1.640028"];cv.width=W;cv.height=H;
+  var cx=cv.getContext("2d");
+  var imgCache={},ptr=null,swingT=0,result=null,rec=null,enc=null,mux=null,mode="",recId=0,t0=0,lastEnc=0,frameN=0,chunks=[],vidBlob=null,vidURL=null,vidExt="webm",rafId=0,finT=null;
+  var vidArea=document.getElementById("vidArea"),vid=document.getElementById("vid"),vstat=document.getElementById("vstat");
+  var vidShare=document.getElementById("vidShare"),vidSave=document.getElementById("vidSave");
+  function headImg(){
+    if(!imgCache[cur]){var im=new Image();im.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg().replace("<svg ",'<svg xmlns="http://www.w3.org/2000/svg" '));imgCache[cur]=im;}
+    return imgCache[cur];
+  }
+  function rr(x,y,w,h,r){cx.beginPath();cx.moveTo(x+r,y);cx.arcTo(x+w,y,x+w,y+h,r);cx.arcTo(x+w,y+h,x,y+h,r);cx.arcTo(x,y+h,x,y,r);cx.arcTo(x,y,x+w,y,r);cx.closePath();}
+  function fit(t,maxW,size,wt){var z=size;do{cx.font=wt+" "+z+"px sans-serif";z--;}while(cx.measureText(t).width>maxW&&z>9);}
+  function draw(){
+    cx.setTransform(W/360,0,0,H/640,0,0);
+    cx.fillStyle="#1f3340";cx.fillRect(0,0,360,640);
+    cx.textAlign="center";cx.textBaseline="middle";
+    var ttl="Beat the "+cur;cx.fillStyle="#fff";fit(ttl,320,34,"800");cx.fillText(ttl,180,38);
+    cx.fillStyle="rgba(255,255,255,.14)";rr(20,70,150,50,12);cx.fill();rr(190,70,150,50,12);cx.fill();
+    cx.fillStyle="#fff";cx.font="800 24px sans-serif";cx.fillText(String(score),95,88);cx.fillText(String(time),265,88);
+    cx.fillStyle="#c5d3da";cx.font="500 11px sans-serif";cx.fillText("Times beaten",95,109);cx.fillText("Seconds left",265,109);
+    cx.fillStyle="#ffd84d";rr(20,134,320,38,4);cx.fill();
+    var nt=note.textContent;cx.fillStyle="#2a2400";fit(nt,300,14,"500");cx.fillText(nt,180,153);
+    cx.fillStyle="#3f5b6b";rr(10,184,340,420,18);cx.fill();
+    var cw=98,ch=125;
+    cubes.forEach(function(o,i){
+      o.p+=(o.tgt-o.p)*0.4;
+      var x=23+(i%3)*(cw+10),y=196+((i/3)|0)*(ch+10);
+      cx.fillStyle="#1a2630";cx.beginPath();cx.ellipse(x+cw/2,y+ch*0.84,cw*0.44,ch*0.12,0,0,7);cx.fill();
+      if(o.p>0.02&&o.type){
+        cx.save();rr(x,y,cw,ch,8);cx.clip();
+        var base=y+ch*0.88,off=(1-o.p)*ch*0.95;
+        if(o.type==="hr"){var im=headImg(),w=cw*0.76,h=ch*0.84;if(im.complete&&im.naturalWidth)cx.drawImage(im,x+(cw-w)/2,base-h+off,w,h);}
+        else{cx.font="52px serif";cx.fillStyle="#fff";cx.fillText(prof().i[0],x+cw/2,base-28+off);}
+        cx.restore();
+      }
+      cx.fillStyle="#b98b5e";rr(x,y+ch*0.84,cw,ch*0.16,6);cx.fill();
+      if(o.hit){cx.font="30px serif";cx.fillText("💥",x+cw/2,y+ch*0.32);}
+    });
+    if(ptr&&Date.now()-ptr.t<700){cx.save();cx.translate(ptr.x,ptr.y);cx.rotate(Date.now()-swingT<110?0.6:-0.5);cx.font="40px serif";cx.fillText("🔨",-6,-16);cx.restore();}
+    cx.fillStyle="#9fb0ba";cx.font="500 12px sans-serif";cx.fillText("Can you beat me? "+(location.host||"BeatThe"),180,624);
+    if(result){
+      cx.fillStyle="rgba(10,18,24,.88)";cx.fillRect(0,0,360,640);
+      cx.fillStyle="#fff";cx.font="80px serif";cx.fillText(result.e,180,230);
+      fit(result.t,320,38,"800");cx.fillText(result.t,180,320);
+      var ln="You beat the "+cur+" "+score+" time"+(score===1?"":"s");
+      fit(ln,320,20,"500");cx.fillText(ln,180,372);
+      cx.fillStyle="#c5d3da";fit(result.x,320,15,"500");cx.fillText(result.x,180,406);
+      cx.fillStyle="#ffd84d";fit("Can you beat me?",320,28,"800");cx.fillText("Can you beat me?",180,490);
+      cx.fillStyle="#9fb0ba";cx.font="500 13px sans-serif";cx.fillText(location.host||"BeatThe",180,524);
+    }
+  }
+  function loop(){
+    draw();
+    if(mode==="mp4"&&enc&&enc.state==="configured"){
+      var now=performance.now();
+      if(now-lastEnc>=33&&enc.encodeQueueSize<10){
+        lastEnc=now;
+        try{var f=new VideoFrame(cv,{timestamp:Math.round((now-t0)*1000)});enc.encode(f,{keyFrame:frameN%60===0});f.close();frameN++;}catch(e){}
+      }
+    }
+    rafId=requestAnimationFrame(loop);
+  }
+  function pickCodec(i,cb){
+    if(i>=CODECS.length)return cb(null);
+    VideoEncoder.isConfigSupported({codec:CODECS[i],width:W,height:H,bitrate:4000000,framerate:30}).then(function(r){
+      if(r&&r.supported)cb(CODECS[i]);else pickCodec(i+1,cb);
+    },function(){pickCodec(i+1,cb);});
+  }
+  function startMp4(codec){
+    try{
+      mux=new Mp4Muxer.Muxer({target:new Mp4Muxer.ArrayBufferTarget(),video:{codec:"avc",width:W,height:H},fastStart:"in-memory",firstTimestampBehavior:"offset"});
+      var e=new VideoEncoder({output:function(c,m){try{mux.addVideoChunk(c,m);}catch(x){}},error:function(){}});
+      e.configure({codec:codec,width:W,height:H,bitrate:4000000,framerate:30});
+      enc=e;mode="mp4";t0=performance.now();lastEnc=-1000;frameN=0;loop();return true;
+    }catch(x){enc=null;mux=null;mode="";return false;}
+  }
+  async function stopMp4(){
+    try{
+      await enc.flush();enc.close();mux.finalize();
+      vidExt="mp4";vidBlob=new Blob([mux.target.buffer],{type:"video/mp4"});showVideo();
+    }catch(x){vstat.textContent="Couldn’t create the video.";}
+    enc=null;mux=null;mode="";
+  }
+  function pickMime(){
+    var c=["video/mp4;codecs=avc1","video/mp4","video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm"];
+    for(var k=0;k<c.length;k++){try{if(MediaRecorder.isTypeSupported(c[k]))return c[k];}catch(e){}}
+    return "";
+  }
+  function startRec(){
+    rec=null;enc=null;mux=null;mode="";var id=++recId;
+    if(window.VideoEncoder&&window.VideoFrame&&window.Mp4Muxer){
+      pickCodec(0,function(codec){if(id!==recId)return;if(codec&&startMp4(codec))return;startMedia();});
+    }else startMedia();
+  }
+  function startMedia(){
+    rec=null;mode="media";
+    if(!window.MediaRecorder||!cv.captureStream)return;
+    try{
+      var m=pickMime(),opts={videoBitsPerSecond:2500000};if(m)opts.mimeType=m;
+      var r=new MediaRecorder(cv.captureStream(30),opts);chunks=[];
+      r.ondataavailable=function(e){if(e.data&&e.data.size)chunks.push(e.data);};
+      r.onstop=function(){
+        var type=(r.mimeType||m||"video/webm").split(";")[0];
+        vidExt=type.indexOf("mp4")>-1?"mp4":"webm";
+        vidBlob=new Blob(chunks,{type:type});showVideo();
+      };
+      r.start(1000);rec=r;loop();
+    }catch(e){rec=null;}
+  }
+  function resetVid(){
+    clearTimeout(finT);cancelAnimationFrame(rafId);
+    if(rec&&rec.state!=="inactive"){rec.onstop=null;try{rec.stop();}catch(e){}}
+    if(enc){try{enc.close();}catch(e){}}enc=null;mux=null;mode="";recId++;rec=null;if(vidURL){URL.revokeObjectURL(vidURL);vidURL=null;}
+    vidBlob=null;vid.removeAttribute("src");vid.hidden=true;vidArea.hidden=true;
+  }
+  function beginFinish(){
+    vidArea.hidden=false;vid.hidden=true;vidShare.disabled=true;vidSave.disabled=true;
+    if(!rec&&!enc){vstat.textContent="Video recording isn’t supported in this browser.";return;}
+    vstat.textContent="Preparing your video…";
+    finT=setTimeout(function(){cancelAnimationFrame(rafId);if(mode==="mp4"){stopMp4();return;}try{rec.stop();}catch(e){}},2300);
+  }
+  function showVideo(){
+    if(!vidBlob||!vidBlob.size){vstat.textContent="Couldn’t create the video.";return;}
+    vidURL=URL.createObjectURL(vidBlob);vid.onerror=function(){vid.hidden=true;};
+    vid.src=vidURL;vid.hidden=false;
+    vstat.textContent="Your "+DURATION+"-second "+vidExt.toUpperCase()+" video is ready."+(vidExt==="webm"?" Some apps need MP4, so convert it if needed.":"");
+    vidShare.disabled=false;vidSave.disabled=false;
+    try{var pr=vid.play();if(pr&&pr.catch)pr.catch(function(){});}catch(e){}
+    track("video-ready","Video ready");
+  }
+  function fileName(){return "beat-the-"+cur.toLowerCase().replace(/[^a-z0-9]+/g,"-")+"-"+score+"."+vidExt;}
+  async function saveVid(){
+    if(!vidBlob)return;track("video-save","Video save clicked");
+    var dl=null;try{if(window.claude&&window.claude.use)dl=await window.claude.use("downloads");}catch(e){}
+    if(dl){
+      try{await dl.save({filename:fileName(),data:vidBlob});vstat.textContent="Video saved.";}
+      catch(e){if(!e||e.code!=="declined")vstat.textContent="Couldn’t save the video.";}
+      return;
+    }
+    var a=document.createElement("a");a.href=vidURL;a.download=fileName();document.body.appendChild(a);a.click();a.remove();
+    vstat.textContent="Video saved to your downloads.";
+  }
+  vidSave.addEventListener("click",saveVid);
+  vidShare.addEventListener("click",async function(){
+    if(!vidBlob)return;track("video-share","Video share clicked");
+    var file=null;try{file=new File([vidBlob],fileName(),{type:vidBlob.type});}catch(e){}
+    if(file&&navigator.canShare&&navigator.canShare({files:[file]})){
+      try{await navigator.share({files:[file],title:"Beat the "+cur,text:shareText()+(pageUrl()?" "+pageUrl():"")});return;}
+      catch(err){if(err&&err.name==="AbortError")return;}
+    }
+    vstat.textContent="Sharing files isn’t supported here. Save the video and send it yourself.";saveVid();
+  });
+  function setPtr(e,down){
+    var r=floor.getBoundingClientRect();
+    ptr={x:10+(e.clientX-r.left)/r.width*340,y:184+(e.clientY-r.top)/r.height*420,t:Date.now()};
+    if(down)swingT=Date.now();
+  }
+  document.addEventListener("pointermove",function(e){setPtr(e,false);});
+  document.addEventListener("pointerdown",function(e){setPtr(e,true);});
+
+  setProf("HR");
+})();
+</script>
+<script data-goatcounter="https://beatthehr.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
